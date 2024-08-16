@@ -24,13 +24,26 @@
 cmake_minimum_required(VERSION 3.2...3.27)
 project(icu-cmake)
 
+# Dependency management
+
+if (PROJECT_IS_TOP_LEVEL)
+    if(NOT DEFINED CPM_SOURCE_CACHE)
+        set(CPM_SOURCE_CACHE ${PROJECT_SOURCE_DIR}/3rdparty/cpm_cache CACHE STRING "")
+    endif()
+
+    set(CPM_DOWNLOAD_ALL                ON CACHE BOOL "")
+    set(CPM_USE_NAMED_CACHE_DIRECTORIES ON CACHE BOOL "")
+endif(PROJECT_IS_TOP_LEVEL)
+
+include(cmake/CPM.cmake)
+
 # cache variables
-set(BUILD_ICU OFF CACHE BOOL "Enable compilation of ICU")
-set(ICU_BUILD_VERSION "" CACHE STRING "ICU version to build")
-set(ICU_CFG_OPTIONS "" CACHE STRING "Additional ICU configuration options")
-set(ICU_STATIC OFF CACHE BOOL "Use static instead of shared ICU (does not work for system)")
-set(ICU_CROSS_ARCH "" CACHE STRING "Target triplet for ICU cross compile")
-set(SYSTEM_ICU OFF CACHE BOOL "Use system-provided icu libraries (instead of prebuilts or building")
+set(BUILD_ICU         OFF    CACHE BOOL   "Enable compilation of ICU")
+set(SYSTEM_ICU        OFF    CACHE BOOL   "Use system-provided icu libraries (instead of prebuilts or building")
+set(ICU_STATIC        OFF    CACHE BOOL   "Use static instead of shared ICU (does not work for system)")
+set(ICU_SOURCE_DIR    ""     CACHE PATH   "User defined ICU sources path")
+set(ICU_CFG_OPTIONS   ""     CACHE STRING "Additional ICU configuration options")
+set(ICU_CROSS_ARCH    ""     CACHE STRING "Target triplet for ICU cross compile")
 
 # allow including our modules
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

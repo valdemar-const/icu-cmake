@@ -44,26 +44,35 @@ ProcessorCount(NUM_JOBS)
 if (NOT ICU_BUILD_VERSION)
     message(FATAL_ERROR "Missing ICU_BUILD_VERSION")
 endif()
-string(REPLACE "." "_" ICU_URL_VERSION ${ICU_BUILD_VERSION})
-set(ICU_URL https://mirror.viaduck.org/icu/icu4c-${ICU_URL_VERSION}-src.tgz)
-
-if (ICU_BUILD_HASH)
-    set(ICU_CHECK_HASH EXPECTED_HASH SHA256=${ICU_BUILD_HASH})
-endif()
+string(REPLACE "." "-" ICU_URL_VERSION_KEBAB_CASE ${ICU_BUILD_VERSION})
+string(REPLACE "." "_" ICU_URL_VERSION_SNAKE_CASE ${ICU_BUILD_VERSION})
+set(ICU_URL https://github.com/unicode-org/icu/releases/download/release-${ICU_URL_VERSION_KEBAB_CASE}/icu4c-${ICU_URL_VERSION_SNAKE_CASE}-src.tgz)
 
 # download and unpack if needed
-if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/icu)
+if (EXISTS ${ICU_SOURCE_DIR})
     message(STATUS "Using existing ICU source")
 else()
-    file(DOWNLOAD ${ICU_URL} ${CMAKE_CURRENT_BINARY_DIR}/icu_src.tgz SHOW_PROGRESS STATUS ICU_DL_STATUS ${ICU_CHECK_HASH})
 
-    # check download result
-    list(GET ICU_DL_STATUS 0 ICU_DL_STATUS_CODE)
-    if (NOT ICU_DL_STATUS_CODE EQUAL 0)
-        message(FATAL_ERROR "ICU download failed with code: ${ICU_DL_STATUS_CODE}")
+    if(ICU_BUILD_HASH)
+        CPMAddPackage(NAME ICU
+            VERSION  ${ICU_BUILD_VERSION}
+            URL      ${ICU_URL}
+            URL_HASH "SHA256=${ICU_BUILD_HASH}"
+            DOWNLOAD_ONLY
+            PATCH_OPTIONS -p1 --forward -r
+            PATCHES
+                "${CMAKE_CURRENT_SOURCE_DIR}/patches/0010-fix-pkgdata-suffix.patch"
+                "${CMAKE_CURRENT_SOURCE_DIR}/patches/0023-remove-soname-version.patch")
+    else()
+        CPMAddPackage(NAME ICU
+            VERSION  ${ICU_BUILD_VERSION}
+            URL      ${ICU_URL}
+            DOWNLOAD_ONLY
+            PATCH_OPTIONS -p1 --forward -r
+            PATCHES
+                "${CMAKE_CURRENT_SOURCE_DIR}/patches/0010-fix-pkgdata-suffix.patch"
+                "${CMAKE_CURRENT_SOURCE_DIR}/patches/0023-remove-soname-version.patch")
     endif()
-
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar x ${CMAKE_CURRENT_BINARY_DIR}/icu_src.tgz WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 # common configuration options for host and cross build
@@ -108,10 +117,8 @@ endif()
 
 ExternalProject_Add(
         icu_host
-        SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/icu
+        SOURCE_DIR ${ICU_SOURCE_DIR}
         BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/icu_host-build
-        PATCH_COMMAND ${PATCH_PROGRAM} -p1 --forward -r - < ${CMAKE_CURRENT_SOURCE_DIR}/patches/0010-fix-pkgdata-suffix.patch || true
-        COMMAND ${PATCH_PROGRAM} -p1 --forward -r - < ${CMAKE_CURRENT_SOURCE_DIR}/patches/0023-remove-soname-version.patch || true
         CONFIGURE_COMMAND ${HOST_ENV_CMAKE} <SOURCE_DIR>/source/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/icu_host --libdir=${CMAKE_CURRENT_BINARY_DIR}/icu_host/lib/ ${HOST_CFG}
         BUILD_COMMAND ${HOST_ENV_CMAKE} ${MAKE_PROGRAM} -j ${NUM_JOBS}
         BUILD_BYPRODUCTS ${ICU_LIBRARY_FILES}
@@ -163,7 +170,7 @@ if (ICU_CROSS_ARCH)
     ExternalProject_Add(
             icu_cross
             DEPENDS icu_host
-            SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/icu
+            SOURCE_DIR ${ICU_SOURCE_DIR}
             BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/icu_cross-build
             CONFIGURE_COMMAND ${CROSS_ENV_CMAKE} sh <SOURCE_DIR>/source/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/icu_cross
             --libdir=${CMAKE_CURRENT_BINARY_DIR}/icu_cross/lib/ --host=${ICU_CROSS_ARCH} --with-cross-build=${CMAKE_CURRENT_BINARY_DIR}/icu_host-build ${ICU_CFG}
