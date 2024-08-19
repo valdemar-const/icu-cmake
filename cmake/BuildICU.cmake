@@ -49,12 +49,12 @@ string(REPLACE "." "_" ICU_URL_VERSION_SNAKE_CASE ${ICU_BUILD_VERSION})
 set(ICU_URL https://github.com/unicode-org/icu/releases/download/release-${ICU_URL_VERSION_KEBAB_CASE}/icu4c-${ICU_URL_VERSION_SNAKE_CASE}-src.tgz)
 
 # download and unpack if needed
-if (EXISTS ${ICU_SOURCE_DIR})
+if (EXISTS ${IcuSrc_SOURCE_DIR})
     message(STATUS "Using existing ICU source")
 else()
 
     if(ICU_BUILD_HASH)
-        CPMAddPackage(NAME ICU
+        CPMAddPackage(NAME IcuSrc
             VERSION  ${ICU_BUILD_VERSION}
             URL      ${ICU_URL}
             URL_HASH "SHA256=${ICU_BUILD_HASH}"
@@ -64,7 +64,7 @@ else()
                 "${CMAKE_CURRENT_SOURCE_DIR}/patches/0010-fix-pkgdata-suffix.patch"
                 "${CMAKE_CURRENT_SOURCE_DIR}/patches/0023-remove-soname-version.patch")
     else()
-        CPMAddPackage(NAME ICU
+        CPMAddPackage(NAME IcuSrc
             VERSION  ${ICU_BUILD_VERSION}
             URL      ${ICU_URL}
             DOWNLOAD_ONLY
@@ -117,7 +117,7 @@ endif()
 
 ExternalProject_Add(
         icu_host
-        SOURCE_DIR ${ICU_SOURCE_DIR}
+        SOURCE_DIR ${IcuSrc_SOURCE_DIR}
         BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/icu_host-build
         CONFIGURE_COMMAND ${HOST_ENV_CMAKE} <SOURCE_DIR>/source/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/icu_host --libdir=${CMAKE_CURRENT_BINARY_DIR}/icu_host/lib/ ${HOST_CFG}
         BUILD_COMMAND ${HOST_ENV_CMAKE} ${MAKE_PROGRAM} -j ${NUM_JOBS}
@@ -170,7 +170,7 @@ if (ICU_CROSS_ARCH)
     ExternalProject_Add(
             icu_cross
             DEPENDS icu_host
-            SOURCE_DIR ${ICU_SOURCE_DIR}
+            SOURCE_DIR ${IcuSrc_SOURCE_DIR}
             BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/icu_cross-build
             CONFIGURE_COMMAND ${CROSS_ENV_CMAKE} sh <SOURCE_DIR>/source/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/icu_cross
             --libdir=${CMAKE_CURRENT_BINARY_DIR}/icu_cross/lib/ --host=${ICU_CROSS_ARCH} --with-cross-build=${CMAKE_CURRENT_BINARY_DIR}/icu_host-build ${ICU_CFG}
