@@ -74,3 +74,7 @@ endif()
 # link system, cross or host libraries to interface target
 target_link_libraries(icu INTERFACE ${ICU_LIBRARIES})
 target_include_directories(icu INTERFACE ${ICU_INCLUDE_DIRS})
+
+add_library(ICU::data ALIAS icu)
+add_library(ICU::i18n ALIAS icu)
+add_library(ICU::uc ALIAS icu)
